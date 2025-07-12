@@ -10,6 +10,7 @@ export const presenterPrefix = `${classPrefix}presenter-` as const
 export const classes = {
   container: `${presenterPrefix}container`,
   dragbar: `${presenterPrefix}dragbar-container`,
+  verticalDragbar: `${presenterPrefix}vertical-dragbar-container`,
   next: `${presenterPrefix}next`,
   nextContainer: `${presenterPrefix}next-container`,
   thumbnailsContainer: `${presenterPrefix}thumbnails-container`,
@@ -32,6 +33,7 @@ export const classes = {
 
 export const properties = {
   noteFontScale: '--bespoke-marp-note-font-scale',
+  verticalSplitRatio: '--bespoke-marp-presenter-vertical-split-ratio',
 } as const
 
 /** Create function to send message to iframe for navigation */
@@ -172,6 +174,7 @@ const presenterView = (deck) => {
           <div class={classes.thumbnailsWrapper} />
         </div>
         <div class={classes.dragbar}></div>
+        <div class={classes.verticalDragbar}></div>
         <div class={classes.noteContainer}>
           <div class={classes.noteWrapper} />
           <div class={classes.noteButtons}>
@@ -220,7 +223,7 @@ const presenterView = (deck) => {
   }
 
   const subscribe = (deck) => {
-    // Splitter
+    // Horizontal splitter
     let isDragging = false
 
     const startDragging = () => {
@@ -254,6 +257,46 @@ const presenterView = (deck) => {
       $(classes.dragbar).removeEventListener('mousedown', startDragging)
       window.removeEventListener('mouseup', endDragging)
       window.removeEventListener('mousemove', onDragging)
+    })
+
+    // Vertical splitter
+    let isVerticalDragging = false
+
+    const startVerticalDragging = () => {
+      isVerticalDragging = true
+      $(classes.verticalDragbar).classList.add('active')
+    }
+
+    const endVerticalDragging = () => {
+      isVerticalDragging = false
+      $(classes.verticalDragbar).classList.remove('active')
+    }
+
+    const onVerticalDragging = (event: MouseEvent) => {
+      if (!isVerticalDragging) return
+
+      const rightPanelElement = $(classes.thumbnailsContainer).parentElement
+      if (!rightPanelElement) return
+
+      const rightPanelRect = rightPanelElement.getBoundingClientRect()
+      const relativeY = event.clientY - rightPanelRect.top
+      const verticalSplitRatio = (relativeY / rightPanelRect.height) * 100
+
+      $(classes.container).style.setProperty(
+        properties.verticalSplitRatio,
+        `${Math.max(10, Math.min(90, verticalSplitRatio))}%`
+      )
+    }
+
+    $(classes.verticalDragbar).addEventListener('mousedown', startVerticalDragging)
+    window.addEventListener('mouseup', endVerticalDragging)
+    window.addEventListener('mousemove', onVerticalDragging)
+
+    // Add cleanup for vertical dragbar event listeners
+    addCleanup(() => {
+      $(classes.verticalDragbar).removeEventListener('mousedown', startVerticalDragging)
+      window.removeEventListener('mouseup', endVerticalDragging)
+      window.removeEventListener('mousemove', onVerticalDragging)
     })
 
         // Thumbnails view
